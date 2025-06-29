@@ -1,5 +1,9 @@
 import json
 
+"""
+i completely forgot that this was even a thing but i thing
+some things somewhere depend on it so i'll keep it in i guess
+"""
 
 base_path = "/home/zach/Desktop/college/programming/python/mkdown/files"
 
