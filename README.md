@@ -8,8 +8,11 @@ A Simple note taking app written in Python.
 ![What it looks like when actually editing the notes.](/assets/editing_note.png)
 ![The settings page.](/assets/settings.png)
 
+# Completed
+- [x] Markdown
+- [x] Relative Line Numbers
+
 # Planned
-- [ ] Markdown (In progress!)
 - [ ] Templates
 - [ ] Tags
 - [ ] Sorting

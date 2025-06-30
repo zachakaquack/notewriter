@@ -259,7 +259,11 @@ class NotePreview(QFrame):
         self.main_layout.addWidget(self.info_section)
 
         self.icon_label = QPushButton("", self)
-        self.icon = QIcon("/home/zach/Desktop/icons/draft.svg")
+
+        if self.note['type'] == "plain":
+            self.icon = QIcon("/home/zach/Desktop/icons/draft.svg")
+        else:
+            self.icon = QIcon("/home/zach/Desktop/icons/light_markdown.svg")
         self.icon_label.setIcon(self.icon)
         self.icon_label.setIconSize(QSize(32, 32))
         self.info_section_layout.addWidget(self.icon_label)

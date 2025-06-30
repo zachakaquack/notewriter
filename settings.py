@@ -66,6 +66,14 @@ class Settings(QScrollArea):
         self.font_size_gb.add_widget(self.font_size_description)
         self.main_layout.addWidget(self.font_size_gb)
 
+        self.rel_ln_gb = GroupBox("Relative Line Numbers")
+        self.rel_label = QLabel("Toggles between relative line numbers.")
+        self.rel_on = CheckBox(self.settings["settings"]["relative_line_numbers"])
+
+        self.rel_ln_gb.add_widget(self.rel_on)
+        self.rel_ln_gb.add_widget(self.rel_label)
+        self.main_layout.addWidget(self.rel_ln_gb)
+
         # keep at bottom
         self.save_button = SaveButton("Save", self)
         self.save_button.clicked.connect(self.save_values)
@@ -85,6 +93,7 @@ class Settings(QScrollArea):
         return {
             "save_on_file_exit": self.file_check.isChecked(),
             "font_size": self.font_size_edit.value(),
+            "relative_line_numbers": self.rel_on.isChecked()
         }
 
 

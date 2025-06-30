@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
     def swap_home_note(self):
         self.side_bar.change_ss_bottom()
         self.main_switcher.switchTo("home_note")
+        self.note_page.note_container.refresh_upon_switch()
 
     def swap_settings(self):
         self.side_bar.change_ss_top()

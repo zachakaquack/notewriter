@@ -23,3 +23,10 @@ def get_base_path():
 
 def get_settings():
     return get_config()["settings"]
+
+def get_note_by_uuid(uuid):
+    notes = get_notes_in_config()
+
+    for note in notes:
+        if uuid == note['uuid']:
+            return note

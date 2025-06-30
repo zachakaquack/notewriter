@@ -52,6 +52,51 @@ class MakeNotePrompt(QFrame):
             widget.setFont(self.label_font)
             self.main_layout.addWidget(widget)
 
+        self.note_type_label = QLabel("Note Type")
+        self.note_type_label.setFont(self.label_font)
+        self.main_layout.addWidget(self.note_type_label)
+
+        self.buttons_type_frame = QFrame()
+        self.buttons_type_frame.setStyleSheet(
+            """
+            QRadioButton {
+                color: white;
+                padding: 4px;
+            }
+
+            QRadioButton::indicator {
+                width: 14px;
+                height: 14px;
+                border-radius: 7px;
+                border: 2px solid white;
+                background-color: #1e1e1e;
+            }
+
+            QRadioButton::indicator:checked {
+                background-color: white;
+            }
+            """
+        )
+
+        self.buttons_type_layout = QHBoxLayout(self.buttons_type_frame)
+        self.buttons_type_frame.setLayout(self.buttons_type_layout)
+        self.buttons_type_layout.setContentsMargins(0, 0, 0, 0)
+        self.buttons_type_layout.setSpacing(10)
+        self.buttons_type_layout.setAlignment(  Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
+
+        self.plain_button = QRadioButton("Plain")
+        self.plain_button.setChecked(True)
+        self.md_button = QRadioButton("Markdown")
+
+        font = QFont("Jetbrains Mono", 12)
+        for button in [self.plain_button, self.md_button]:
+            button.setFont(font)
+            self.buttons_type_layout.addWidget(button)
+
+        self.main_layout.addWidget(self.buttons_type_frame)
+
+
         self.buttons_container = QFrame(self)
 
         self.buttons_container.setStyleSheet(
@@ -101,12 +146,20 @@ class MakeNotePrompt(QFrame):
         if not title:
             title = "No Title"
 
+        if self.plain_button.isChecked():
+            selected = "plain"
+            extension = ".txt"
+        else:
+            selected = "markdown"
+            extension = ".md"
+
         dictionary = {
             "title": f"{title}",
-            "file": f"{title.replace(" ", "_")}.txt",
+            "file": f"{title.replace(" ", "_")}{extension}",
             "uuid": f"{uuid4()}",
             "created": f"{current_date}",
             "edited": f"{current_date}",
+            "type": selected
         }
 
         self.accepted.emit(dictionary)

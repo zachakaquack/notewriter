@@ -4,6 +4,8 @@ from PySide6.QtWidgets import *
 from datetime import datetime
 import json
 from uuid import uuid4
+# from markdown_page import MarkdownContainer
+from note_area import NoteArea
 
 
 class NotePage(QFrame):
@@ -27,15 +29,40 @@ class NotePage(QFrame):
         self.top_bar.backButton.connect(self.back)
         self.main_layout.addWidget(self.top_bar)
 
+        self.current_file_path = ""
+        self.current_file = {}
+
         self.note_container = None
         self.bottom_bar = BottomBar("file.txt", "directory")
         self.main_layout.addWidget(self.bottom_bar)
 
     def back(self):
         if self.note_container:
-            self.note_container.write_file()
+            self.write_file()
 
         self.backButton.emit()
+
+    def write_file(self):
+        if self.note_container:
+            current = self.note_container.input.toPlainText()
+            with open(self.current_file_path, "r") as f:
+                prev_file = f
+
+            with open(self.current_file_path, "w") as f:
+                f.write(self.note_container.input.toPlainText())
+
+            # update the file
+            if current != prev_file:
+                settings = self.load_settings()
+                for i, note in enumerate(settings["notes"]):
+                    if note["uuid"] == self.current_file['uuid']:
+                        current_date = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+                        self.update_bottom_bar("action", f"Saved {current_date}")
+                        note["edited"] = current_date
+                        settings["notes"][i] = note
+                        with open(f"files/settings.json", "w") as f:
+                            f.write(json.dumps(settings, indent=4))
+
 
     def load_settings(self) -> dict:
         with open("files/settings.json", "r") as f:
@@ -50,11 +77,22 @@ class NotePage(QFrame):
         notes = settings["notes"]
         for note in notes:
             if note["uuid"] == uuid:
-                self.note_container = NoteContainer(
-                    settings, f"{settings['base_path']}{note['file']}", uuid
-                )
+
+                self.current_file_path = f"{settings['base_path']}{note['file']}"
+                self.current_file = note
+
+                self.note_container = NoteArea(settings, uuid)
                 self.note_container.updateBottomBar.connect(self.update_bottom_bar)
+                self.note_container.saved.connect(self.write_file)
+
+                if note['type'] != "plain":
+                    self.note_container.swap_plaintext_markdown()
+                    self.note_container.input.setText(
+                        self.note_container.input.toPlainText()
+                    )
+
                 self.main_layout.addWidget(self.note_container)
+
                 self.update_bottom_bar("file", f"{note['file']}")
                 dir = settings["base_path"].split("/")[-2]
                 self.update_bottom_bar("directory", f"{dir}")
@@ -185,124 +223,3 @@ class BottomBar(QFrame):
         self.main_layout.addWidget(self.path_label)
         self.main_layout.addWidget(self.position_label)
         self.main_layout.addWidget(self.last_change_label)
-
-
-class NoteContainer(QFrame):
-
-    updateBottomBar = Signal(str, object)
-    # cursorPositionChanged = Signal(int, int)
-    # actionChanged = Signal(str, object)
-
-    # TODO: change note_title and file to just the json dict from config
-    def __init__(self, data, file, uuid, *args, **kwargs):
-        super().__init__(*args, *kwargs)
-
-        self.data = data
-        self.file = file
-        self.uuid = uuid
-
-        self.main_layout = QVBoxLayout(self)
-        self.setLayout(self.main_layout)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
-        self.main_layout.setAlignment(
-            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter
-        )
-
-        self.input = Input()
-        self.input.setStyleSheet(
-            """
-            background-color: #1e1e1e;
-            color: white;
-            """
-        )
-        self.input.updateBottomBar.connect(self.updateBottomBar)
-        self.input.write.connect(self.write_file)
-
-        self.main_layout.addWidget(self.input)
-        with open(self.file, "r") as f:
-            self.input.setText(f.read())
-
-        self.load_font_size()
-
-    def load_font_size(self):
-        with open(f"{self.data['base_path']}settings.json", "r") as f:
-            data = json.load(f)
-            font_size = data["settings"]["font_size"]
-            # font_size is equal to 20
-            self.input.setFont(QFont("Jetbrains Mono", font_size))
-
-    def write_file(self):
-        current = self.input.toPlainText()
-        with open(self.file, "r") as f:
-            prev_file = f
-
-        with open(self.file, "w") as f:
-            f.write(self.input.toPlainText())
-
-        # update the file
-        if current != prev_file:
-            with open(f"{self.data['base_path']}settings.json", "r") as f:
-                settings = json.load(f)
-
-            for i, note in enumerate(settings["notes"]):
-                if note["uuid"] == self.uuid:
-                    current_date = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-                    note["edited"] = current_date
-                    settings["notes"][i] = note
-                    with open(f"{self.data['base_path']}settings.json", "w") as f:
-                        f.write(json.dumps(settings, indent=4))
-
-
-class Input(QTextEdit):
-
-    write = Signal()
-    updateBottomBar = Signal(str, object)
-    # cursorPositionChanged = Signal(int, int)
-    # actionChanged = Signal(str, object)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, *kwargs)
-        self.textChanged.connect(self.update_text_position)
-
-    def keyPressEvent(self, event: QKeyEvent, /) -> None:
-        self.update_text_position()
-        match event.key():
-            case Qt.Key.Key_S:
-                if event.modifiers() == Qt.ControlModifier:
-                    self.update_last_action("save")
-                    self.write.emit()
-            case Qt.Key.Key_Z:
-                if event.modifiers() == Qt.ControlModifier | Qt.ShiftModifier:
-                    self.update_last_action("redo")
-                if event.modifiers() == Qt.ControlModifier:
-                    self.update_last_action("undo")
-
-        return super().keyPressEvent(event)
-
-    def update_last_action(self, action):
-        time = datetime.now().time()
-        time = f"{time}"[:-7]
-        match action:
-            case "save":
-                self.updateBottomBar.emit("action", f"Saved at {time}")
-            case "undo":
-                self.updateBottomBar.emit("action", f"Undo at {time}")
-            case "redo":
-                self.updateBottomBar.emit("action", f"Redo at {time}")
-            case _:
-                print(f"unknown action: {action}")
-
-    def update_text_position(self):
-        cursor = self.textCursor()
-        pos = cursor.position()
-
-        # Get entire document text up to the cursor
-        text_before = self.toPlainText()[:pos]
-        lines = text_before.split("\n")
-
-        line_number = len(lines)  # 1-based line number
-        column_number = len(lines[-1])  # character index within that line
-
-        # self.cursorPositionChanged.emit(line_number, column_number)
-        self.updateBottomBar.emit("cursor", [line_number, column_number])
