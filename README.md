@@ -14,11 +14,11 @@ A simple note taking app written in Python.
   - [x] Relative Line Numbers
 - Refactoring
   - [x] Refactor [note_area.py](https://github.com/zachakaquack/notewriter/blob/main/note_area.py) (the area where you actually write and view notes)
+  - [x] Refactor top bar to become more modular
+  - [x] Clean up code to use [file_management.py](https://github.com/zachakaquack/notewriter/blob/main/file_management.py) more instead of hardcoding
 
 # Planned
 - [ ] Refactoring
-  - [x] Refactor top bar to become more modular
-  - [x] Clean up code to use [file_management.py](https://github.com/zachakaquack/notewriter/blob/main/file_management.py) more instead of hardcoding
   - [ ] General optimizations
     - [ ] Make everything more type-safe
     - [ ] Optimize line number / relative line number drawing; currently it draws all numbers, not just the ones on the screen
