@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
 
-        self.setFixedSize(1280, 720)
+        self.setFixedSize(1920, 1080)
 
         self.config = file_management.get_config()
         self.base_path = self.config["base_path"]
@@ -93,14 +93,14 @@ class SideBar(QFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)
 
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.setStyleSheet(
             """
         background-color: #303030;
         border: none;
         """
         )
-        self.setFixedSize(64, 720)
+        self.setFixedWidth(64)
 
         self.main_layout = QVBoxLayout(self)
         self.setLayout(self.main_layout)
