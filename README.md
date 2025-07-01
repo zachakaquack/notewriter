@@ -1,6 +1,6 @@
 # notewriter
 
-A Simple note taking app written in Python.
+A simple note taking app written in Python.
 
 # Some Screenshots
 
@@ -17,9 +17,8 @@ A Simple note taking app written in Python.
 
 # Planned
 - [ ] Refactoring
-  - [ ] Refactor top bar to become more modular
-  - [ ] Refactor bottom bar within notes to just make more sense and work better
-  - [ ] Clean up code to use [file_management.py](https://github.com/zachakaquack/notewriter/blob/main/file_management.py) more instead of hardcoding
+  - [x] Refactor top bar to become more modular
+  - [x] Clean up code to use [file_management.py](https://github.com/zachakaquack/notewriter/blob/main/file_management.py) more instead of hardcoding
   - [ ] General optimizations
     - [ ] Make everything more type-safe
     - [ ] Optimize line number / relative line number drawing; currently it draws all numbers, not just the ones on the screen
