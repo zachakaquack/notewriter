@@ -41,6 +41,7 @@ class TopBar(QFrame):
         # store the widgets in the top bar
         self.widgets = []
 
+
     def set_spacing(self, spacing: int) -> None:
         """
         sets the spacing between the widgets within the layout
