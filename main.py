@@ -1,4 +1,3 @@
-from qdarktheme.base import json
 from rich.traceback import install
 from PySide6.QtCore import *
 from PySide6.QtGui import *
@@ -6,9 +5,10 @@ from PySide6.QtWidgets import *
 import qdarktheme
 import sys
 
-from home_page import HomePage
-from note_page import NotePage
-from settings import Settings
+from other import file_management
+from pages.home.home_page import HomePage
+from pages.note.note_page import NotePage
+from pages.settings import Settings
 
 install()
 
@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
 
         self.setFixedSize(1280, 720)
 
-        self.config = self.load_settings()
+        self.config = file_management.get_config()
         self.base_path = self.config["base_path"]
         self.notes = self.config["notes"]
 
@@ -57,14 +57,11 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.main_widget)
 
-    def load_settings(self) -> dict:
-        with open("files/settings.json", "r") as f:
-            return json.load(f)
-
     def swap_home_note(self):
         self.side_bar.change_ss_bottom()
         self.main_switcher.switchTo("home_note")
-        self.note_page.note_container.refresh_upon_switch()
+        if self.note_page.note_container:
+            self.note_page.note_container.refresh_upon_switch()
 
     def swap_settings(self):
         self.side_bar.change_ss_top()

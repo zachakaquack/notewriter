@@ -1,9 +1,7 @@
-import json
-from rich.console import Group
-from rich.traceback import install
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
+from other import file_management
 
 
 class Settings(QScrollArea):
@@ -82,12 +80,9 @@ class Settings(QScrollArea):
         )
 
     def save_values(self):
-        with open(f"{self.settings['base_path']}settings.json", "r") as f:
-            data = json.load(f)
-
+        data = file_management.get_config()
         data["settings"] = self.get_dictionary()
-        with open(f"{self.settings['base_path']}settings.json", "w") as f:
-            f.write(json.dumps(data, indent=4))
+        file_management.write_json(data)
 
     def get_dictionary(self):
         return {

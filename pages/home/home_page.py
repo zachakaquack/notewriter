@@ -1,10 +1,12 @@
-import json
 from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
-from flow import FlowLayout
-from make_note_prompt import MakeNotePrompt
 import os
+from other import file_management
+from other.flow import FlowLayout
+
+from widgets.make_note_prompt import MakeNotePrompt
+from widgets.top_bar import TopBar
 
 
 class HomePage(QFrame):
@@ -26,9 +28,11 @@ class HomePage(QFrame):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        self.top_bar = TopBar(self.config)
-        self.top_bar.noteCreated.connect(
-            lambda data: self.note_container.load_notes(data["base_path"])
+        self.top_bar = TopBar()
+        self.top_bar.add_button(
+            "create_note",
+            QIcon("/home/zach/Desktop/icons/light_add.svg"),
+            self.launch_create_note
         )
         self.main_layout.addWidget(self.top_bar)
 
@@ -44,89 +48,23 @@ class HomePage(QFrame):
 
         self.main_layout.addLayout(self.special_layout)
 
+    def launch_create_note(self) -> None:
+        self.menu = MakeNotePrompt()
+        self.menu.accepted.connect(self.make_note)
+        self.menu.show()
 
-class TopBar(QFrame):
+    def make_note(self, dictionary: dict) -> None:
+        path = self.config['base_path']
+        data = file_management.get_config()
+        data['notes'].append(dictionary)
 
-    noteCreated = Signal(dict)
+        # write to the json
+        file_management.write_json(data)
 
-    def __init__(self, config, *args, **kwargs):
-        super().__init__(*args, *kwargs)
+        # make the actual file
+        file_management.create_file(dictionary['file'])
 
-        self.setFixedHeight(64)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        self.setObjectName("top-bar")
-        self.setStyleSheet(
-            """
-            #top-bar{
-                border-bottom: 1px solid white;
-                border-radius: 0px;
-            }
-            *{
-                border: none;
-                background-color: #303030;
-            }
-            """
-        )
-
-        self.config = config
-
-        self.main_layout = QVBoxLayout(self)
-        self.setLayout(self.main_layout)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
-        self.main_layout.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignHCenter
-        )
-
-        self.add_note_button = self.IconButton(
-            QIcon("/home/zach/Desktop/icons/light_add.svg")
-        )
-        self.add_note_button.clicked.connect(self.make_prompt)
-        self.main_layout.addWidget(self.add_note_button)
-
-    def make_prompt(self):
-        self.make_note_prompt = MakeNotePrompt()
-        self.make_note_prompt.accepted.connect(self.make_note)
-        # self.make_note_prompt.denied.connect(print)
-        # self.make_note_prompt.closed.connect(print)
-        self.make_note_prompt.show()
-
-    def make_note(self, dictionary):
-        data = self.write_to_json(dictionary)
-
-        path = self.config["base_path"]
-        with open(f"{path}/{dictionary['file']}", "w") as f:
-            f.write("")
-
-        self.noteCreated.emit(data)
-
-    def write_to_json(self, dictionary):
-        path = self.config["base_path"]
-        with open(f"{path}/settings.json", "r") as f:
-            data = json.load(f)
-
-            data["notes"].append(dictionary)
-            with open(f"{path}/settings.json", "w") as f:
-                f.write(json.dumps(data, indent=4))
-                return data
-
-    class IconButton(QPushButton):
-        def __init__(self, ico: QIcon, *args, **kwargs):
-            super().__init__(*args, *kwargs)
-
-            self.setFixedSize(63, 63)
-            self.setIcon(ico)
-            self.setIconSize(QSize(32, 32))
-
-        def enterEvent(self, event: QEnterEvent, /) -> None:
-            self.setStyleSheet("background-color: #404040;")
-            return super().enterEvent(event)
-
-        def leaveEvent(self, event: QEvent, /) -> None:
-            self.setStyleSheet("background-color: #303030;")
-            return super().leaveEvent(event)
-
+        self.note_container.load_notes(path)
 
 class NotePreviewerContainer(QScrollArea):
 
@@ -150,13 +88,16 @@ class NotePreviewerContainer(QScrollArea):
         self.main_layout.setSpacing(25)
         self.setWidget(self.main_widget)
 
+    def update_notes(self):
+        for note in self.notes:
+            note.redo_config_things()
+
     def load_notes(self, base_path):
 
         while (child := self.main_layout.takeAt(0)) != None:
             child.widget().hide()
 
-        with open(f"{base_path}settings.json", "r") as f:
-            notes = json.load(f)["notes"]
+        notes = file_management.get_notes_in_config()
 
         for note in notes:
             preview = NotePreview(base_path, note)
@@ -177,13 +118,12 @@ class NotePreview(QFrame):
 
         self.base_path = base_path
         self.note = note
-        self.file = note["file"]
-        self.path = f"{self.base_path}{self.file}"
+        self.path = f"{self.base_path}{self.note['file']}"
 
-        self.note_title = note["title"]
-        self.note_date = note["created"]
-        self.edited_date = note["edited"]
-        self.uuid = note["uuid"]
+        self.note_title = self.note["title"]
+        self.note_date = self.note["created"]
+        self.edited_date = self.note["edited"]
+        self.uuid = self.note["uuid"]
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setObjectName("note-preview")
@@ -234,8 +174,7 @@ class NotePreview(QFrame):
             """
         )
 
-        with open(self.path, "r") as f:
-            self.path_text = f.read()
+        self.path_text = file_management.get_text_in_file(self.note['file'])
 
         self.path_label = QLabel(self.path_text)
         self.path_label.setSizePolicy(
@@ -305,6 +244,15 @@ class NotePreview(QFrame):
 
         self.set_infosection_stylesheet("#303030")
 
+    def redo_config_things(self):
+        self.base_path = file_management.get_base_path()
+        self.path = f"{self.base_path}/{self.note['file']}"
+
+        self.note_title = self.note["title"]
+        self.note_date = self.note["created"]
+        self.edited_date = self.note["edited"]
+        self.uuid = self.note["uuid"]
+
     def set_infosection_stylesheet(self, color):
         self.info_section.setStyleSheet(
             f"""
@@ -316,9 +264,22 @@ class NotePreview(QFrame):
         )
 
     def redo_preview(self):
-        with open(self.path, "r") as f:
-            text = f.read()
-            self.path_label.setText(text)
+        self.redo_config_things
+        try:
+            self.path_label.setText(
+                file_management.get_text_in_file(
+                    self.note['file']
+                )
+            )
+        except FileNotFoundError:
+            """
+            bug where the class's config file and everythign relating
+            to it doesn't get updated in time. it's probably just something
+            ordered poorly somewhere, or a race.
+            this is a hacky solution, but there are plans to make it possible
+            to have an "invalid" note.
+            """
+            pass
 
     def mousePressEvent(self, event: QMouseEvent, /) -> None:
         self.noteSelected.emit(f"{self.uuid}")
@@ -347,16 +308,17 @@ class NotePreview(QFrame):
         menu.exec(pos)
 
     def delete_note(self):
-        with open(f"{self.base_path}settings.json", "r") as f:
-            data = json.load(f)
+        data = file_management.get_config()
 
         for i, note in enumerate(data["notes"]):
             if note["uuid"] == self.uuid:
                 data["notes"].pop(i)
                 os.remove(f"{data['base_path']}{note['file']}")
 
-        with open(f"{self.base_path}settings.json", "w") as f:
-            f.write(json.dumps(data, indent=4))
+        file_management.write_json(data)
+
+        self.redo_config_things()
+
         self.noteDeleted.emit()
 
     def duplicate_note(self):

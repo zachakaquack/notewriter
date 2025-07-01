@@ -2,10 +2,9 @@ from PySide6.QtCore import *
 from PySide6.QtGui import *
 from PySide6.QtWidgets import *
 from datetime import datetime
-import json
-from uuid import uuid4
-# from markdown_page import MarkdownContainer
-from note_area import NoteArea
+from other import file_management
+from pages.note.note_area import NoteArea
+from widgets.top_bar import TopBar
 
 
 class NotePage(QFrame):
@@ -26,7 +25,11 @@ class NotePage(QFrame):
         )
 
         self.top_bar = TopBar()
-        self.top_bar.backButton.connect(self.back)
+        self.top_bar.add_button(
+            "back_button",
+            QIcon("/home/zach/Desktop/icons/light_arrow_back.svg"),
+            self.back
+        )
         self.main_layout.addWidget(self.top_bar)
 
         self.current_file_path = ""
@@ -42,39 +45,32 @@ class NotePage(QFrame):
 
         self.backButton.emit()
 
+    # TODO: replace with file_management entirely
     def write_file(self):
         if self.note_container:
             current = self.note_container.input.toPlainText()
-            with open(self.current_file_path, "r") as f:
-                prev_file = f
-
-            with open(self.current_file_path, "w") as f:
-                f.write(self.note_container.input.toPlainText())
+            file_management.write_to_file(self.current_file['file'], current)
 
             # update the file
-            if current != prev_file:
-                settings = self.load_settings()
-                for i, note in enumerate(settings["notes"]):
-                    if note["uuid"] == self.current_file['uuid']:
-                        current_date = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-                        self.update_bottom_bar("action", f"Saved {current_date}")
-                        note["edited"] = current_date
-                        settings["notes"][i] = note
-                        with open(f"files/settings.json", "w") as f:
-                            f.write(json.dumps(settings, indent=4))
+            for i, note in enumerate(notes := file_management.get_notes_in_config()):
+                if note["uuid"] == self.current_file['uuid']:
+                    current_date = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
+                    self.update_bottom_bar("action", f"Saved {current_date}")
+                    note["edited"] = current_date
+                    notes[i] = note
 
-    def load_settings(self) -> dict:
-        with open("files/settings.json", "r") as f:
-            return json.load(f)
+                    settings = file_management.get_config()
+                    settings['notes'] = notes
+                    file_management.write_json(settings)
 
     def loadNote(self, uuid):
         if self.note_container:
             self.main_layout.removeWidget(self.note_container)
             self.note_container.deleteLater()
 
-        settings = self.load_settings()
-        notes = settings["notes"]
+        settings = file_management.get_config()
+        notes = file_management.get_notes_in_config()
         for note in notes:
             if note["uuid"] == uuid:
 
@@ -118,62 +114,6 @@ class NotePage(QFrame):
                 self.bottom_bar.file_label.setText(value)
             case "directory":
                 self.bottom_bar.path_label.setText(value)
-
-
-class TopBar(QFrame):
-
-    backButton = Signal()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, *kwargs)
-
-        self.setFixedHeight(64)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        self.setObjectName("top-bar")
-        self.setStyleSheet(
-            """
-        #top-bar{
-            background-color: #303030;
-            border-bottom: 1px solid white;
-            border-radius: 0px;
-        }
-        QPushButton{
-            border: none;
-        }
-        """
-        )
-
-        self.main_layout = QVBoxLayout(self)
-        self.setLayout(self.main_layout)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
-        self.main_layout.setAlignment(
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignHCenter
-        )
-
-        self.back_button = self.IconButton(
-            QIcon("/home/zach/Desktop/icons/light_arrow_back.svg")
-        )
-        self.back_button.clicked.connect(self.backButton.emit)
-        self.main_layout.addWidget(self.back_button)
-
-    class IconButton(QPushButton):
-        def __init__(self, ico: QIcon, *args, **kwargs):
-            super().__init__(*args, *kwargs)
-
-            self.setFixedSize(63, 63)
-            self.setIcon(ico)
-            self.setIconSize(QSize(32, 32))
-
-        def enterEvent(self, event: QEnterEvent, /) -> None:
-            self.setStyleSheet("background-color: #404040; border: none;")
-            return super().enterEvent(event)
-
-        def leaveEvent(self, event: QEvent, /) -> None:
-            self.setStyleSheet("background-color: #303030; border: none;")
-            return super().leaveEvent(event)
-
 
 class BottomBar(QFrame):
     def __init__(self, file, path, *args, **kwargs):
